@@ -1,12 +1,11 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 const db = require('../models/database');
-// const mail = require('../helpers/mailHelper');
 const responseHelper = require('../helpers/responseHelper');
 
-const AuthService = function() {};
+const AuthService = function() {}; // eslint-disable-line
 
-AuthService.prototype.signup = async(req, res) => {
+AuthService.prototype.signup = async(req) => {
     const transaction = await db.sequelize.transaction();
     try {
         const newUser = {
@@ -63,7 +62,7 @@ AuthService.prototype.authenticateuser = async(req, res) => {
         if (!user) {
             responseHelper.setBadRequestResponse('Authentication failed!', res);
         } else {
-            let isMatch = await user.comparePasswords(password);
+            const isMatch = await user.comparePasswords(password);
             if (isMatch) {
                 const token = jwt.sign({
                         EmailId: user.email_id,
@@ -94,8 +93,8 @@ AuthService.prototype.authenticateuser = async(req, res) => {
 };
 AuthService.prototype.rf_token = async(req, res) => {
     try {
-        const refresh_token = req.headers['refresh-token'];
-        const decoded = jwt.verify(refresh_token, config.keys.refSecret);
+        const refreshTokenFromHeaders = req.headers['refresh-token'];
+        const decoded = jwt.verify(refreshTokenFromHeaders, config.keys.refSecret);
         const potentialUser = { where: { email_id: decoded.EmailId } };
         const user = await db.user.findOne(potentialUser, res);
         const token = jwt.sign({
@@ -148,6 +147,39 @@ AuthService.prototype.verifyacount = async(req, res) => {
         await db.refresh_tokens.update(refToken, { where: { user_name: user.email_id } });
         const result = {
             Refresh_Token: ref_token,
+            Token: `JWT ${token}`
+        };
+        return result;
+    } catch (error) {
+        throw (error);
+    }
+};
+
+AuthService.prototype.verifyacount = async(req, res) => {
+    try {
+        const data = {
+            status: 1
+        };
+        const potentialUser = { where: { id: req.body.UserId } };
+        await db.user.update(data, potentialUser);
+        const user = await db.user.findOne(potentialUser, res);
+        const token = jwt.sign({
+                EmailId: user.email_id,
+                id: user.id,
+                FirstName: user.first_name,
+                LastName: user.last_name
+            },
+            config.keys.secret, { expiresIn: '30m' }
+        );
+        const refreshToken = jwt.sign({ EmailId: user.email_id },
+            config.keys.refSecret, { expiresIn: '30d' }
+        );
+        const refreshTokenWrapper = {
+            refresh_token: refreshToken
+        };
+        await db.refresh_tokens.update(refreshTokenWrapper, { where: { user_name: user.email_id } });
+        const result = {
+            Refresh_Token: refreshToken,
             Token: `JWT ${token}`
         };
         return result;

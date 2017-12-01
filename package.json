@@ -4,7 +4,7 @@
   "description": "Affordable.City Backend API using JWTs, MySQL, Express and the Sequelize ORM.",
   "main": "app/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "ls && npm run lint",
     "lint": "eslint --format unix '**/*.js' '**/*.jsx' '.*.js'"
   },
   "keywords": [

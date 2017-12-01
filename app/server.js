@@ -1,9 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
-const sequelize = require('sequelize');
 const passport = require('passport');
-const jwt = require('jsonwebtoken');
 const db = require('./models/database');
 const errorHandler = require('errorhandler');
 const log = require('./lib/log')(module);
@@ -11,8 +9,6 @@ const config = require('./config');
 const helmet = require('helmet');
 const winston = require('winston');
 const compression = require('compression');
-const expressValidator = require('express-validator');
-const path = require('path');
 
 const logger = new (winston.Logger)({
   transports: [new (winston.transports.Console)({ colorize: true })]
@@ -81,19 +77,18 @@ app.use((err, req, res, next) => {
 
 // Routes
 app.use((req, res, next) => {
-  console.log('Time:', Date.now());
+  log('Time:', Date.now());
   next();
 });
 
+app.use((req, res) => {
+  res.status(404);
+  log.debug('Not found URL: %s', req.url);
+  res.send({ error: `URL [${req.url}] not found!` });
+});
 
-// app.use(function(req, res) {
-//     res.status(404);
-//     log.debug('Not found URL: %s', req.url);
-//     res.send({ error: 'URL [' + req.url + '] not found!' });
-// });
-
-// app.use(function(err, req, res) {
-//     res.status(err.status || 500);
-//     log.error('Internal error(%d): %s', res.statusCode, err.message);
-//     res.send({ error: err.message });
-// });
+app.use((err, req, res) => {
+  res.status(err.status || 500);
+  log.error('Internal error(%d): %s', res.statusCode, err.message);
+  res.send({ error: err.message });
+});

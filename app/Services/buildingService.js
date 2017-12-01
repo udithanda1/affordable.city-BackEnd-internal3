@@ -1,42 +1,60 @@
-let config = require('../config');
 const db = require('../models/database');
 const geoLocation = require('../helpers/geoLocationHelper');
 
-const BuildingService = function () {};
+const BuildingService = function() {}; // eslint-disable-line
 
-BuildingService.prototype.createBuilding = async (req, res) => {
-  try {
-    const data = await geoLocation.geocoder.geocode(`${req.body.Address}, ${req.body.City}, ${req.body.ZipCode}`);
-    const buildingNew = {
-      address: req.body.Address,
-      city: req.body.City,
-      state: req.body.State,
-      zip_code: req.body.ZipCode,
-      units: req.body.Units,
-      latitude: data[0].latitude,
-      longitude: data[0].longitude,
-      user_id: req.user.id
-    };
-    const building = await db.building.create(buildingNew);
-    const result = await db.user.findAll({
-      include: [{ model: db.building }]
-    });
-    return result;
-  } catch (error) {
-    throw (error);
-  }
+BuildingService.prototype.getAllBuildings = async() => {
+    try {
+        const result = await db.building.findAll();
+        return result;
+    } catch (error) {
+        throw (error);
+    }
 };
 
-BuildingService.prototype.getAllBuilding = async (req, res) => {
-  try {
-    const result = await db.user.findAll({
-      where: { id: req.user.id },
-      include: [{ model: db.building }]
-    });
-    return result;
-  } catch (error) {
-    throw (error);
-  }
+BuildingService.prototype.createBuilding = async(params) => {
+    try {
+        const {
+            address,
+            city,
+            state,
+            zipCode,
+            units,
+            userId
+        } = params;
+        const data = await geoLocation.geocoder.geocode(`${params.address}, ${params.city}, ${params.zipCode}`);
+        const { latitude, longitude } = data[0];
+        const newBuilding = {
+            address,
+            city,
+            state,
+            zipCode,
+            units,
+            userId,
+            latitude,
+            longitude
+        };
+        const building = await db.building.create(newBuilding);
+        const result = await db.building.findOne({
+            id: building.id
+        });
+        return result;
+    } catch (error) {
+        throw (error);
+    }
+};
+
+BuildingService.prototype.getBuilding = async(id) => {
+    try {
+        const result = await db.building.findOne({
+            where: {
+                id
+            }
+        });
+        return result;
+    } catch (error) {
+        throw (error);
+    }
 };
 
 module.exports = new BuildingService();
